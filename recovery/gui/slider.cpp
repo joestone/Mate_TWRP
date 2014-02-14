@@ -15,7 +15,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "../data.hpp"
 
 #include <string>
 
@@ -157,10 +156,8 @@ int GUISlider::NotifyTouch(TOUCH_STATE state, int x, int y)
 		if (!dragging)
 			return 0;
 
-		if (sCurTouchX >= mRenderX + mRenderW - sTouchW) {
-			DataManager::Vibrate("tw_button_vibrate");
+		if (sCurTouchX >= mRenderX + mRenderW - sTouchW)
 			sAction->doActions();
-		}
 
 		sCurTouchX = mRenderX;
 		dragging = false;

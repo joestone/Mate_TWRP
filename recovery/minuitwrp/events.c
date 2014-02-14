@@ -20,11 +20,8 @@
 #include <dirent.h>
 #include <sys/poll.h>
 #include <limits.h>
-#include <linux/input.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
+#include <linux/input.h>
 
 #include "../common.h"
 
@@ -98,9 +95,6 @@ struct ev {
 static struct pollfd ev_fds[MAX_DEVICES];
 static struct ev evs[MAX_DEVICES];
 static unsigned ev_count = 0;
-static struct timeval lastInputStat;
-static unsigned long lastInputMTime;
-static int has_mouse = 0;
 
 static inline int ABS(int x) {
     return x<0?-x:x;
@@ -111,8 +105,6 @@ int vibrate(int timeout_ms)
     char str[20];
     int fd;
     int ret;
-
-    if (timeout_ms > 10000) timeout_ms = 1000;
 
     fd = open(VIBRATOR_TIMEOUT_FILE, O_WRONLY);
     if (fd < 0)
@@ -245,40 +237,11 @@ static int vk_init(struct ev *e)
     return 0;
 }
 
-#define BITS_PER_LONG (sizeof(long) * 8)
-#define NBITS(x) ((((x)-1)/BITS_PER_LONG)+1)
-#define OFF(x)  ((x)%BITS_PER_LONG)
-#define LONG(x) ((x)/BITS_PER_LONG)
-#define test_bit(bit, array)	((array[LONG(bit)] >> OFF(bit)) & 1)
-static void check_mouse(int fd)
-{
-	if(has_mouse)
-		return;
-
-	unsigned long bit[EV_MAX][NBITS(KEY_MAX)];
-	memset(bit, 0, sizeof(bit));
-	ioctl(fd, EVIOCGBIT(0, EV_MAX), bit[0]);
-
-	if(!test_bit(EV_REL, bit[0]))
-		return;
-
-	ioctl(fd, EVIOCGBIT(EV_REL, KEY_MAX), bit[EV_REL]);
-	if(test_bit(REL_X, bit[EV_REL]) && test_bit(REL_Y, bit[EV_REL]))
-		has_mouse = 1;
-}
-
-int ev_has_mouse(void)
-{
-	return has_mouse;
-}
-
 int ev_init(void)
 {
     DIR *dir;
     struct dirent *de;
     int fd;
-
-    has_mouse = 0;
 
 	dir = opendir("/dev/input");
     if(dir != 0) {
@@ -295,32 +258,23 @@ int ev_init(void)
             /* Load virtualkeys if there are any */
 			vk_init(&evs[ev_count]);
 
-            check_mouse(fd);
-
             ev_count++;
             if(ev_count == MAX_DEVICES) break;
         }
-        closedir(dir);
     }
-
-    struct stat st;
-    if(stat("/dev/input", &st) >= 0)
-        lastInputMTime = st.st_mtime;
-    gettimeofday(&lastInputStat, NULL);
 
     return 0;
 }
 
 void ev_exit(void)
 {
-	while (ev_count-- > 0) {
-		if (evs[ev_count].vk_count) {
-			free(evs[ev_count].vks);
-			evs[ev_count].vk_count = 0;
-		}
-		close(ev_fds[ev_count].fd);
+    while (ev_count-- > 0) {
+	if (evs[ev_count].vk_count) {
+		free(evs[ev_count].vks);
+		evs[ev_count].vk_count = 0;
 	}
-	ev_count = 0;
+        close(ev_fds[ev_count].fd);
+    }
 }
 
 static int vk_inside_display(__s32 value, struct input_absinfo *info, int screen_size)
@@ -441,12 +395,10 @@ static int vk_modify(struct ev *e, struct input_event *ev)
         case ABS_MT_TOUCH_MAJOR: //30
             if (ev->value == 0)
             {
-#ifndef TW_IGNORE_MAJOR_AXIS_0
                 // We're in a touch release, although some devices will still send positions as well
                 e->mt_p.x = 0;
                 e->mt_p.y = 0;
                 touchReleaseOnNextSynReport = 1;
-#endif
             }
 #ifdef _EVENT_LOGGING
             printf("EV: %s => EV_ABS  ABS_MT_TOUCH_MAJOR  %d\n", e->deviceName, ev->value);
@@ -673,25 +625,9 @@ int ev_get(struct input_event *ev, unsigned dont_wait)
 {
     int r;
     unsigned n;
-    struct timeval curr;
 
     do {
-        gettimeofday(&curr, NULL);
-        if(curr.tv_sec - lastInputStat.tv_sec >= 2)
-        {
-            struct stat st;
-            stat("/dev/input", &st);
-            if (st.st_mtime > lastInputMTime)
-            {
-                LOGI("Reloading input devices\n");
-                ev_exit();
-                ev_init();
-                lastInputMTime = st.st_mtime;
-            }
-            lastInputStat = curr;
-        }
-
-        r = poll(ev_fds, ev_count, 0);
+        r = poll(ev_fds, ev_count, dont_wait ? 0 : -1);
 
         if(r > 0) {
             for(n = 0; n < ev_count; n++) {
@@ -704,8 +640,6 @@ int ev_get(struct input_event *ev, unsigned dont_wait)
                 }
             }
         }
-
-        usleep(1000);
     } while(dont_wait == 0);
 
     return -1;

@@ -55,7 +55,7 @@ extern "C"
 	#include "twcommon.h"
 	#include "data.h"
 	#include "gui/pages.h"
-	#include "minuitwrp/minui.h"
+
 	void gui_notifyVarChange(const char *name, const char* value);
 }
 
@@ -583,9 +583,6 @@ void DataManager::SetDefaultValues()
 
 	mConstValues.insert(make_pair(TW_VERSION_VAR, TW_VERSION_STR));
 	mValues.insert(make_pair("tw_storage_path", make_pair("/", 1)));
-	mValues.insert(make_pair("tw_button_vibrate", make_pair("80", 1)));
-	mValues.insert(make_pair("tw_keyboard_vibrate", make_pair("40", 1)));
-	mValues.insert(make_pair("tw_action_vibrate", make_pair("160", 1)));
 
 #ifdef TW_FORCE_CPUINFO_FOR_DEVICE_ID
 	printf("TW_FORCE_CPUINFO_FOR_DEVICE_ID := true\n");
@@ -645,11 +642,11 @@ void DataManager::SetDefaultValues()
 #else
 	#ifdef RECOVERY_SDCARD_ON_DATA
 		#ifdef TW_EXTERNAL_STORAGE_PATH
-			LOGINFO("Has /data/media + external storage in '%s'\n", EXPAND(TW_EXTERNAL_STORAGE_PATH));
+			LOGINFO("Has /data/share + external storage in '%s'\n", EXPAND(TW_EXTERNAL_STORAGE_PATH));
 			// Device has /data/media + external storage
 			mConstValues.insert(make_pair(TW_HAS_DUAL_STORAGE, "1"));
 		#else
-			LOGINFO("Single storage only -- data/media.\n");
+			LOGINFO("Single storage only -- data/share.\n");
 			// Device just has external storage
 			mConstValues.insert(make_pair(TW_HAS_DUAL_STORAGE, "0"));
 			mConstValues.insert(make_pair(TW_HAS_EXTERNAL, "0"));
@@ -660,11 +657,11 @@ void DataManager::SetDefaultValues()
 		mConstValues.insert(make_pair(TW_HAS_DUAL_STORAGE, "0"));
 	#endif
 	#ifdef RECOVERY_SDCARD_ON_DATA
-		LOGINFO("Device has /data/media defined.\n");
+		LOGINFO("Device has /data/share defined.\n");
 		// Device has /data/media
 		mConstValues.insert(make_pair(TW_USE_EXTERNAL_STORAGE, "0"));
 		mConstValues.insert(make_pair(TW_HAS_INTERNAL, "1"));
-		mValues.insert(make_pair(TW_INTERNAL_PATH, make_pair("/data/media", 0)));
+		mValues.insert(make_pair(TW_INTERNAL_PATH, make_pair("/data/share", 0)));
 		mConstValues.insert(make_pair(TW_INTERNAL_MOUNT, "/data"));
 		mConstValues.insert(make_pair(TW_INTERNAL_LABEL, "data"));
 		#ifdef TW_EXTERNAL_STORAGE_PATH
@@ -715,8 +712,8 @@ void DataManager::SetDefaultValues()
 #endif
 
 #ifdef RECOVERY_SDCARD_ON_DATA
-	if (PartitionManager.Mount_By_Path("/data", false) && TWFunc::Path_Exists("/data/media/0"))
-		SetValue(TW_INTERNAL_PATH, "/data/media/0");
+	if (PartitionManager.Mount_By_Path("/data", false) && TWFunc::Path_Exists("/data/share/0"))
+		SetValue(TW_INTERNAL_PATH, "/data/share/0");
 #endif
 	str = GetCurrentStoragePath();
 #ifdef RECOVERY_SDCARD_ON_DATA
@@ -1242,12 +1239,4 @@ extern "C" void DataManager_DumpValues(void)
 extern "C" void DataManager_ReadSettingsFile(void)
 {
 	return DataManager::ReadSettingsFile();
-}
-void DataManager::Vibrate(const string varName)
-{
-	int vib_value = 0;
-	GetValue(varName, vib_value);
-	if (vib_value) {
-		vibrate(vib_value);
-	}
 }

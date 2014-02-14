@@ -82,8 +82,7 @@ int main(int argc, char *argv[])
     int n_flag=0;
     char *n_name;
     char *n_blk_dev;
-    char *fstab_file;
-    struct fstab *fstab;
+    char *fstab;
 
     klog_init();
     klog_set_level(6);
@@ -91,9 +90,7 @@ int main(int argc, char *argv[])
     parse_options(argc, argv, &a_flag, &u_flag, &n_flag, &n_name, &n_blk_dev);
 
     /* The name of the fstab file is last, after the option */
-    fstab_file = argv[argc - 1];
-
-    fstab = fs_mgr_read_fstab(fstab_file);
+    fstab = argv[argc - 1];
 
     if (a_flag) {
         return fs_mgr_mount_all(fstab);
@@ -105,8 +102,6 @@ int main(int argc, char *argv[])
         ERROR("%s: Internal error, unknown option\n", me);
         exit(1);
     }
-
-    fs_mgr_free_fstab(fstab);
 
     /* Should not get here */
     exit(1);

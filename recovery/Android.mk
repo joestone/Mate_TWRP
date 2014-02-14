@@ -20,7 +20,6 @@ LOCAL_SRC_FILES := \
     twrp.cpp \
     fixPermissions.cpp \
     twrpTar.cpp \
-	twrpDU.cpp \
     twrpDigest.cpp \
 
 LOCAL_SRC_FILES += \
@@ -265,13 +264,6 @@ ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS), true)
 else
     LOCAL_CFLAGS += -DTW_EXCLUDE_ENCRYPTED_BACKUPS
 endif
-ifeq ($(TARGET_RECOVERY_QCOM_RTC_FIX),)
-  ifeq ($(TARGET_CPU_VARIANT),krait)
-    LOCAL_CFLAGS += -DQCOM_RTC_FIX
-  endif
-else ifeq ($(TARGET_RECOVERY_QCOM_RTC_FIX),true)
-    LOCAL_CFLAGS += -DQCOM_RTC_FIX
-endif
 
 include $(BUILD_EXECUTABLE)
 
@@ -362,11 +354,8 @@ endif
 ifeq ($(TW_INCLUDE_JB_CRYPTO), true)
     include $(commands_recovery_local_path)/crypto/jb/Android.mk
     include $(commands_recovery_local_path)/crypto/fs_mgr/Android.mk
-    include $(commands_recovery_local_path)/crypto/logwrapper/Android.mk
-    include $(commands_recovery_local_path)/crypto/scrypt/Android.mk
-    include $(commands_recovery_local_path)/crypto/crypttools/Android.mk
 endif
-ifeq ($(TWHAVE_SELINUX), true)
+ifeq ($(HAVE_SELINUX), true)
     include $(commands_recovery_local_path)/minzip/Android.mk
 else
     include $(commands_recovery_local_path)/minzipold/Android.mk

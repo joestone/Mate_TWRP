@@ -25,7 +25,6 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <time.h>
 
 extern "C" {
 #ifdef HAVE_SELINUX
@@ -286,7 +285,6 @@ protected:
 	void operation_start(const string operation_name);
 	void operation_end(const int operation_status, const int simulate);
 	static void* command_thread(void *cookie);
-	time_t Start;
 };
 
 class GUIConsole : public RenderObject, public ActionObject
@@ -976,31 +974,6 @@ protected:
 	GUIAction *mAction;
 	bool mChangeOnDrag;
 	int lineW;
-};
-
-class MouseCursor : public RenderObject
-{
-public:
-	MouseCursor(int posX, int posY);
-	virtual ~MouseCursor();
-
-	virtual int Render(void);
-	virtual int Update(void);
-	virtual int SetRenderPos(int x, int y, int w = 0, int h = 0);
-
-	void Move(int deltaX, int deltaY);
-	void GetPos(int& x, int& y);
-	void LoadData(xml_node<>* node);
-	void ResetData(int resX, int resY);
-
-private:
-	int m_resX;
-	int m_resY;
-	bool m_moved;
-	float m_speedMultiplier;
-	COLOR m_color;
-	Resource *m_image;
-	bool m_present;
 };
 
 // Helper APIs

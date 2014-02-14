@@ -54,7 +54,6 @@ extern blanktimer blankTimer;
 std::map<std::string, PageSet*> PageManager::mPageSets;
 PageSet* PageManager::mCurrentSet;
 PageSet* PageManager::mBaseSet = NULL;
-MouseCursor *PageManager::mMouseCursor = NULL;
 
 // Helper routine to convert a string to a color declaration
 int ConvertStrToColor(std::string str, COLOR* color)
@@ -551,11 +550,6 @@ int PageSet::Load(ZipArchive* package)
 	if (child)
 		LoadVariables(child);
 
-	LOGINFO("Loading mouse cursor...\n");
-	child = parent->first_node("mousecursor");
-	if(child)
-		PageManager::LoadCursorData(child);
-
 	LOGINFO("Loading pages...\n");
 	// This may be NULL if no templates are present
 	templates = parent->first_node("templates");
@@ -617,21 +611,16 @@ Page* PageSet::FindPage(std::string name)
 int PageSet::LoadVariables(xml_node<>* vars)
 {
 	xml_node<>* child;
-	xml_attribute<> *name, *value, *persist;
-	int p;
 
 	child = vars->first_node("variable");
 	while (child)
 	{
-		name = child->first_attribute("name");
-		value = child->first_attribute("value");
-		persist = child->first_attribute("persist");
-		if(name && value)
-		{
-			p = persist ? atoi(persist->value()) : 0;
-			DataManager::SetValue(name->value(), value->value(), p);
-		}
+		if (!child->first_attribute("name"))
+			break;
+		if (!child->first_attribute("value"))
+			break;
 
+		DataManager::SetValue(child->first_attribute("name")->value(), child->first_attribute("value")->value());
 		child = child->next_sibling("variable");
 	}
 	return 0;
@@ -855,9 +844,6 @@ int PageManager::ReloadPackage(std::string name, std::string package)
 	if (iter == mPageSets.end())
 		return -1;
 
-	if(mMouseCursor)
-		mMouseCursor->ResetData(gr_fb_width(), gr_fb_height());
-
 	PageSet* set = (*iter).second;
 	mPageSets.erase(iter);
 
@@ -933,25 +919,7 @@ int PageManager::IsCurrentPage(Page* page)
 
 int PageManager::Render(void)
 {
-	int res = (mCurrentSet ? mCurrentSet->Render() : -1);
-	if(mMouseCursor)
-		mMouseCursor->Render();
-	return res;
-}
-
-MouseCursor *PageManager::GetMouseCursor()
-{
-	if(!mMouseCursor)
-		mMouseCursor = new MouseCursor(gr_fb_width(), gr_fb_height());
-	return mMouseCursor;
-}
-
-void PageManager::LoadCursorData(xml_node<>* node)
-{
-	if(!mMouseCursor)
-		mMouseCursor = new MouseCursor(gr_fb_width(), gr_fb_height());
-
-	mMouseCursor->LoadData(node);
+	return (mCurrentSet ? mCurrentSet->Render() : -1);
 }
 
 int PageManager::Update(void)
@@ -960,16 +928,7 @@ int PageManager::Update(void)
 	if(blankTimer.IsScreenOff())
 		return 0;
 #endif
-
-	int res = (mCurrentSet ? mCurrentSet->Update() : -1);
-
-	if(mMouseCursor)
-	{
-		int c_res = mMouseCursor->Update();
-		if(c_res > res)
-			res = c_res;
-	}
-	return res;
+	return (mCurrentSet ? mCurrentSet->Update() : -1);
 }
 
 int PageManager::NotifyTouch(TOUCH_STATE state, int x, int y)

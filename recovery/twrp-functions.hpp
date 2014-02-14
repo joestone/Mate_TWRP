@@ -46,6 +46,7 @@ public:
 	static void htc_dumlock_restore_original_boot(void);                        // Restores the backup of boot from HTC Dumlock
 	static void htc_dumlock_reflash_recovery_to_boot(void);                     // Reflashes the current recovery to boot
 	static int Recursive_Mkdir(string Path);                                    // Recursively makes the entire path
+	static unsigned long long Get_Folder_Size(const string& Path, bool Display_Error); // Gets the size of a folder and all of its subfolders using dirent and stat
 	static bool Path_Exists(string Path);                                       // Returns true if the path exists
 	static void GUI_Operation_Text(string Read_Value, string Default_Text);     // Updates text for display in the GUI, e.g. Backing up %partition name%
 	static void GUI_Operation_Text(string Read_Value, string Partition_Name, string Default_Text); // Same as above but includes partition name
@@ -60,7 +61,6 @@ public:
 	static int copy_file(string src, string dst, int mode); //copy file from src to dst with mode permissions
 	static unsigned int Get_D_Type_From_Stat(string Path);                      // Returns a dirent dt_type value using stat instead of dirent
 	static timespec timespec_diff(timespec& start, timespec& end);	            // Return a diff for 2 times
-	static int32_t timespec_diff_ms(timespec& start, timespec& end);            // Returns diff in ms
 	static int read_file(string fn, vector<string>& results); //read from file
 	static int read_file(string fn, string& results); //read from file
 	static int write_file(string fn, string& line); //write from file
@@ -76,7 +76,6 @@ public:
 	static int Wait_For_Child(pid_t pid, int *status, string Child_Name); // Waits for pid to exit and checks exit status
 	static string Get_Current_Date(void);                               // Returns the current date in ccyy-m-dd--hh-nn-ss format
 	static void Auto_Generate_Backup_Name();                            // Populates TW_BACKUP_NAME with a backup name based on current date and ro.build.display.id from /system/build.prop
-	static void Fixup_Time_On_Boot(); // Fixes time on devices which need it
 
 private:
 	static void Copy_Log(string Source, string Destination);

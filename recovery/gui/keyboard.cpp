@@ -30,7 +30,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "../data.hpp"
 
 #include <string>
 
@@ -476,7 +475,6 @@ int GUIKeyboard::NotifyTouch(TOUCH_STATE state, int x, int y)
 					startSelection = 0;
 					break;
 				} else if (state == TOUCH_RELEASE && was_held == 0) {
-					DataManager::Vibrate("tw_keyboard_vibrate");
 					if ((int)keyboard_keys[currentLayout - 1][rowIndex][indexx].key < KEYBOARD_SPECIAL_KEYS && (int)keyboard_keys[currentLayout - 1][rowIndex][indexx].key > 0) {
 						// Regular key
 						PageManager::NotifyKeyboard(keyboard_keys[currentLayout - 1][rowIndex][indexx].key);
@@ -502,7 +500,6 @@ int GUIKeyboard::NotifyTouch(TOUCH_STATE state, int x, int y)
 						PageManager::NotifyKeyboard(keyboard_keys[currentLayout - 1][rowIndex][indexx].key);
 					} else if ((int)keyboard_keys[currentLayout - 1][rowIndex][indexx].longpresskey < KEYBOARD_SPECIAL_KEYS && (int)keyboard_keys[currentLayout - 1][rowIndex][indexx].longpresskey > 0) {
 						// Long Press Key
-						DataManager::Vibrate("tw_keyboard_vibrate");
 						PageManager::NotifyKeyboard(keyboard_keys[currentLayout - 1][rowIndex][indexx].longpresskey);
 					}
 				} else if (state == TOUCH_REPEAT) {

@@ -36,11 +36,6 @@
 #include "twrp-functions.hpp"
 #include "fixPermissions.hpp"
 #include "twrpDigest.hpp"
-#include "twrpDU.hpp"
-
-extern "C" {
-	#include "cutils/properties.h"
-}
 
 #ifdef TW_INCLUDE_CRYPTO
 	#ifdef TW_INCLUDE_JB_CRYPTO
@@ -48,10 +43,8 @@ extern "C" {
 	#else
 		#include "crypto/ics/cryptfs.h"
 	#endif
+	#include "cutils/properties.h"
 #endif
-
-TWPartitionManager::TWPartitionManager(void) {
-}
 
 int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error) {
 	FILE *fstabFile;
@@ -96,9 +89,6 @@ int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error)
 		for (iter = Partitions.begin(); iter != Partitions.end(); iter++) {
 			if ((*iter)->Is_Storage) {
 				(*iter)->Is_Settings_Storage = true;
-#ifndef RECOVERY_SDCARD_ON_DATA
-				(*iter)->Setup_AndSec();
-#endif
 				Found_Settings_Storage = true;
 				DataManager::SetValue("tw_settings_path", (*iter)->Storage_Path);
 				DataManager::SetValue("tw_storage_path", (*iter)->Storage_Path);
@@ -245,8 +235,6 @@ void TWPartitionManager::Output_Partition(TWPartition* Part) {
 		printf("   MTD_Name: %s\n", Part->MTD_Name.c_str());
 	string back_meth = Part->Backup_Method_By_Name();
 	printf("   Backup_Method: %s\n\n", back_meth.c_str());
-	if (Part->Mount_Flags || !Part->Mount_Options.empty())
-		printf("   Mount_Flags=0x%8x, Mount_Options=%s\n", Part->Mount_Flags, Part->Mount_Options.c_str());
 }
 
 int TWPartitionManager::Mount_By_Path(string Path, bool Display_Error) {
@@ -782,7 +770,7 @@ int TWPartitionManager::Run_Backup(void) {
 
 	time(&total_stop);
 	int total_time = (int) difftime(total_stop, total_start);
-	uint64_t actual_backup_size = du.Get_Folder_Size(Full_Backup_Path);
+	unsigned long long actual_backup_size = TWFunc::Get_Folder_Size(Full_Backup_Path, true);
     actual_backup_size /= (1024LLU * 1024LLU);
 
 	int prev_img_bps, use_compression;
@@ -1191,15 +1179,15 @@ int TWPartitionManager::Wipe_Media_From_Data(void) {
 
 	if (dat != NULL) {
 		if (!dat->Has_Data_Media) {
-			LOGERR("This device does not have /data/media\n");
+			LOGERR("This device does not have /data/share\n");
 			return false;
 		}
 		if (!dat->Mount(true))
 			return false;
 
-		gui_print("Wiping internal storage -- /data/media...\n");
-		TWFunc::removeDir("/data/media", false);
-		if (mkdir("/data/media", S_IRWXU | S_IRWXG | S_IWGRP | S_IXGRP) != 0)
+		gui_print("Wiping internal storage -- /data/share...\n");
+		TWFunc::removeDir("/data/share", false);
+		if (mkdir("/data/share", S_IRWXU | S_IRWXG | S_IWGRP | S_IXGRP) != 0)
 			return -1;
 		if (dat->Has_Data_Media) {
 			dat->Recreate_Media_Folder();
@@ -1473,11 +1461,12 @@ int TWPartitionManager::Decrypt_Device(string Password) {
 			// Sleep for a bit so that the device will be ready
 			sleep(1);
 #ifdef RECOVERY_SDCARD_ON_DATA
-			if (dat->Mount(false) && TWFunc::Path_Exists("/data/media/0")) {
-				dat->Storage_Path = "/data/media/0";
+			if (dat->Mount(false) && TWFunc::Path_Exists("/data/share/0")) {
+				dat->Storage_Path = "/data/share/0";
 				dat->Symlink_Path = dat->Storage_Path;
-				DataManager::SetValue("tw_storage_path", "/data/media/0");
+				DataManager::SetValue(TW_INTERNAL_PATH, "/data/share/0");
 				dat->UnMount(false);
+				DataManager::SetBackupFolder();
 				Output_Partition(dat);
 			}
 #endif
@@ -1525,7 +1514,6 @@ int TWPartitionManager::Open_Lun_File(string Partition_Path, string Lun_File) {
 		LOGERR("Unable to write to ums lunfile '%s': (%s)\n", Lun_File.c_str(), strerror(errno));
 		return false;
 	}
-	property_set("sys.storage.ums_enabled", "1");
 	return true;
 }
 
@@ -1586,7 +1574,6 @@ int TWPartitionManager::usb_storage_disable(void) {
 	Mount_All_Storage();
 	Update_System_Details();
 	UnMount_Main_Partitions();
-	property_set("sys.storage.ums_enabled", "0");
 	if (ret < 0 && index == 0) {
 		LOGERR("Unable to write to ums lunfile '%s'.", lun_file);
 		return false;
@@ -1606,7 +1593,7 @@ void TWPartitionManager::Mount_All_Storage(void) {
 }
 
 void TWPartitionManager::UnMount_Main_Partitions(void) {
-	// Unmounts system and data if data is not data/media
+	// Unmounts system and data if data is not data/share
 	// Also unmounts boot if boot is mountable
 	LOGINFO("Unmounting main partitions...\n");
 
