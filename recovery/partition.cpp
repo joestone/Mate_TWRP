@@ -1761,6 +1761,7 @@ void TWPartition::Recreate_Media_Folder(void) {
 		PartitionManager.Mount_By_Path(Symlink_Mount_Point, true);
 		LOGINFO("Recreating /data/share folder.\n");
 		mkdir("/data/share", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH); 
+		mkdir("/data/media", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH); 
 		PartitionManager.UnMount_By_Path(Symlink_Mount_Point, true);
 	}
 }
