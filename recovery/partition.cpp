@@ -1461,6 +1461,7 @@ bool TWPartition::Wipe_Data_Without_Wiping_Media() {
 					LOGINFO("Unable to unlink '%s'\n", dir.c_str());
 			}
 		}
+		mkdir("/data/media", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 		closedir(d);
 		gui_print("Done.\n");
 		return true;
